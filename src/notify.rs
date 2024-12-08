@@ -4,10 +4,9 @@ use crate::refund::RefundQueryResponse;
 use crate::util::datetime_fmt;
 use crate::{client::WechatPayClient, trade::TradeQueryResponse};
 use anyhow::Result;
-use bytes::Bytes;
 use chrono::{DateTime, Local};
 use http::{StatusCode, Version};
-use hyper::Body;
+use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
 
 /// 微信支付通知。
@@ -62,7 +61,7 @@ impl WechatPayClient {
     /// 参见 <https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter3_1_5.shtml>
     pub async fn verify_notification(
         &self,
-        req: http::Request<Body>,
+        req: http::Request<Bytes>,
     ) -> Result<http::Request<Bytes>> {
         let method = req.method().clone();
         let uri = req.uri().clone();
