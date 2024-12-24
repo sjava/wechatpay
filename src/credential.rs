@@ -40,8 +40,8 @@ impl MchCredential {
         msg.put_slice(req.method().as_str().as_bytes());
         msg.put_u8(b'\n');
 
-        let url = if let Some(quer) = req.url().query() {
-            format!("{}?{}", req.url().path(), quer)
+        let url = if let Some(query) = req.url().query() {
+            format!("{}?{}", req.url().path(), query)
         } else {
             req.url().path().to_string()
         };
