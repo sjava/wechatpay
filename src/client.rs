@@ -51,7 +51,6 @@ impl WechatPayClient {
 
     /// 对响应进行数字签名验证。
     pub(crate) async fn verify_response(&self, res: Response) -> Result<Response> {
-        let res = self.platform_certificate.verify_response(res).await?;
-        Ok(res)
+        self.platform_certificate.verify_response(res).await
     }
 }

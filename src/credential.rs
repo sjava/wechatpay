@@ -97,8 +97,7 @@ impl MchCredential {
             aad: associated_data,
         };
 
-        let plaintext = cipher.decrypt(nonce, payload)?;
-        Ok(plaintext)
+        cipher.decrypt(nonce, payload).map_err(Into::into)
     }
 
     /// 使用商户 API v3 密钥解密，并转换为字符串
