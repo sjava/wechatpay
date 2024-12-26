@@ -3,6 +3,7 @@ pub mod credential;
 pub mod error;
 pub mod notify;
 pub mod platform_certificate;
+pub mod partner;
 pub mod refund;
 pub mod trade;
 pub mod util;

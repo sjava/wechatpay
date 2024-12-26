@@ -7,12 +7,13 @@ use reqwest::Response;
 use rsa::pkcs1v15::{Signature, VerifyingKey};
 use rsa::sha2::Sha256;
 use rsa::signature::Verifier;
-use rsa::RsaPublicKey;
+use rsa::{Oaep, RsaPublicKey};
+use sha1::Sha1;
 
 /// 微信支付平台证书。
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PlatformCertificate {
-    pub serial_no: String,
+    pub public_id: String,
     pub public_key: RsaPublicKey,
 }
 
@@ -24,6 +25,16 @@ impl PlatformCertificate {
     }
 
     // TODO: 定义一个 RSA 加密方法，用于对敏感信息进行加密
+    pub fn encrypt(&self, data: &[u8]) -> Result<String> {
+        let mut rng = rand::thread_rng();
+
+        let enc_data = self
+            .public_key
+            .encrypt(&mut rng, Oaep::new::<Sha1>(), data)?;
+
+        // Convert to base64
+        Ok(BASE64_STANDARD.encode(enc_data))
+    }
 }
 
 /// 响应签名验证器: 对响应进行数字签名验证。
@@ -55,6 +66,14 @@ pub async fn verify_response(public_key: &RsaPublicKey, res: Response) -> Result
         .get("Wechatpay-Nonce")
         .ok_or_else(|| anyhow::format_err!("missing `Wechatpay-Nonce` header"))?
         .to_str()?;
+
+    // TODO: remove this line
+    let serial_no = res
+        .headers()
+        .get("Wechatpay-Serial")
+        .ok_or_else(|| anyhow::format_err!("missing `Wechatpay-Serial` header"))?
+        .to_str()?;
+    println!("serial_no: {}", serial_no);
 
     let mut msg = BytesMut::new();
     msg.put_slice(timestamp.as_bytes());

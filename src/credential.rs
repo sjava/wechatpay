@@ -82,6 +82,54 @@ impl MchCredential {
 
         Ok(req)
     }
+    pub fn upload_sign_request(&self, mut req: Request, meta: String) -> Result<Request> {
+        const SIGNATURE_TYPE: &str = "WECHATPAY2-SHA256-RSA2048";
+
+        let mut msg = BytesMut::new();
+
+        msg.put_slice(req.method().as_str().as_bytes());
+        msg.put_u8(b'\n');
+
+        let url = if let Some(query) = req.url().query() {
+            format!("{}?{}", req.url().path(), query)
+        } else {
+            req.url().path().to_string()
+        };
+        msg.put_slice(url.as_bytes());
+        msg.put_u8(b'\n');
+
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        msg.put_slice(format!("{}", timestamp).as_bytes());
+        msg.put_u8(b'\n');
+
+        let nonce_str = generate_none_str(32);
+        msg.put_slice(nonce_str.as_bytes());
+        msg.put_u8(b'\n');
+
+        msg.put_slice(meta.as_bytes());
+        msg.put_u8(b'\n');
+        println!("{:?}", msg);
+
+        let mut rng = rand::thread_rng();
+        let signing_key = SigningKey::<Sha256>::new(self.mch_rsa_private_key.clone());
+        let signature = signing_key.sign_with_rng(&mut rng, &msg).to_bytes();
+        let signature = BASE64_STANDARD.encode(&signature);
+
+        let authorization_value = format!(
+            r#"{} mchid="{}",nonce_str="{}",signature="{}",timestamp="{}",serial_no="{}""#,
+            SIGNATURE_TYPE,
+            self.mch_id,
+            nonce_str,
+            signature,
+            timestamp,
+            self.mch_certificate_serial_no
+        );
+        println!("{:?}", authorization_value);
+        req.headers_mut()
+            .insert(AUTHORIZATION, authorization_value.parse().unwrap());
+
+        Ok(req)
+    }
 
     /// 使用商户 API v3 密钥解密
     pub fn aes_decrypt(
