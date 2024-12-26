@@ -67,14 +67,6 @@ pub async fn verify_response(public_key: &RsaPublicKey, res: Response) -> Result
         .ok_or_else(|| anyhow::format_err!("missing `Wechatpay-Nonce` header"))?
         .to_str()?;
 
-    // TODO: remove this line
-    let serial_no = res
-        .headers()
-        .get("Wechatpay-Serial")
-        .ok_or_else(|| anyhow::format_err!("missing `Wechatpay-Serial` header"))?
-        .to_str()?;
-    println!("serial_no: {}", serial_no);
-
     let mut msg = BytesMut::new();
     msg.put_slice(timestamp.as_bytes());
     msg.put_u8(b'\n');

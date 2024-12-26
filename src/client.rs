@@ -30,7 +30,7 @@ impl WechatPayClient {
     /// 执行 HTTP 请求
     /// 请求发送时，先进行签名；收到响应时，先进行验签，通过后再返回。
     /// (本 crate 未实现的接口，可以通过此方法访问)
-    pub async fn execute(&self, req: Request) -> Result<Response> {
+    pub async fn execute(&self, req: Request, meta: Option<String>) -> Result<Response> {
         let mut req = req;
         // 根据 https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay2_0.shtml#part-1
         // 给所有请求都加上 accept header。
@@ -41,7 +41,7 @@ impl WechatPayClient {
             self.platform_certificate.public_id.parse().unwrap(),
         );
 
-        let req = self.mch_credential.sign_request(req)?;
+        let req = self.mch_credential.sign_request(req, meta)?;
         let res = self.client.execute(req).await?;
 
         // 请求出错时，响应中可能不存在验签相关的字段。因此直接返回 error。
@@ -49,29 +49,6 @@ impl WechatPayClient {
             let e: WechatPayApiError = res.json().await?;
             Err(e.into())
         } else {
-            self.verify_response(res).await
-        }
-    }
-    pub async fn execute_upload_image(&self, req: Request, meta: String) -> Result<Response> {
-        let mut req = req;
-        // 根据 https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay2_0.shtml#part-1
-        // 给所有请求都加上 accept header。
-        req.headers_mut()
-            .append("Accept", "application/json".parse().unwrap());
-        req.headers_mut().insert(
-            "Wechatpay-Serial",
-            self.platform_certificate.public_id.parse().unwrap(),
-        );
-
-        let req = self.mch_credential.upload_sign_request(req, meta)?;
-        let res = self.client.execute(req).await?;
-
-        // 请求出错时，响应中可能不存在验签相关的字段。因此直接返回 error。
-        if !res.status().is_success() {
-            let e: WechatPayApiError = res.json().await?;
-            Err(e.into())
-        } else {
-            println!("verify_response");
             self.verify_response(res).await
         }
     }

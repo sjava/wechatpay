@@ -6,11 +6,37 @@ use http::{header::CONTENT_TYPE, HeaderMap};
 use reqwest::multipart::{Form, Part};
 use rsa::sha2::{Digest, Sha256};
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{json, Value};
 
 #[derive(Debug, Deserialize)]
 pub struct UploadResponse {
     pub media_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PersonalBankingResponse {
+    pub total_count: u32,
+    pub count: u32,
+    pub data: Option<Vec<BankData>>,
+    pub offset: u32,
+    pub links: Links,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct BankData {
+    pub bank_alias: String,
+    pub bank_alias_code: String,
+    pub account_bank: String,
+    pub account_bank_code: u32,
+    pub need_bank_branch: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Links {
+    pub next: String,
+    pub prev: String,
+    #[serde(rename = "self")]
+    pub self_link: String,
 }
 
 impl WechatPayClient {
@@ -64,8 +90,23 @@ impl WechatPayClient {
 
         let url = format!("{}/merchant/media/upload", BASE_URL);
         let req = self.client.post(&url).multipart(form).build()?;
-        let res = self.execute_upload_image(req, meta).await?;
+        let res = self.execute(req, Some(meta)).await?;
         let res: UploadResponse = res.json().await?;
+        Ok(res)
+    }
+    pub async fn get_personal_banking(
+        &self,
+        offset: u32,
+        limit: u32,
+    ) -> Result<PersonalBankingResponse> {
+        let url = format!("{}/capital/capitallhh/banks/personal-banking", BASE_URL);
+        let req = self
+            .client
+            .get(&url)
+            .query(&[("offset", offset), ("limit", limit)])
+            .build()?;
+        let res = self.execute(req, None).await?;
+        let res = res.json().await?;
         Ok(res)
     }
 }

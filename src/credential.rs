@@ -32,7 +32,7 @@ pub struct MchCredential {
 impl MchCredential {
     /// 使用商户 RSA 私钥，对请求进行数字签名。
     /// <https://pay.weixin.qq.com/wiki/doc/apiv3/wechatpay/wechatpay4_0.shtml>
-    pub fn sign_request(&self, mut req: Request) -> Result<Request> {
+    pub fn sign_request(&self, mut req: Request, meta: Option<String>) -> Result<Request> {
         const SIGNATURE_TYPE: &str = "WECHATPAY2-SHA256-RSA2048";
 
         let mut msg = BytesMut::new();
@@ -56,12 +56,26 @@ impl MchCredential {
         msg.put_slice(nonce_str.as_bytes());
         msg.put_u8(b'\n');
 
-        if let Some(body) = req.body() {
-            // 由本项目保证 body.as_bytes() 返回 Some(...)。
-            // 也即，由本项目保证 body 为  `Reusable`，而非 `Streaming`。
-            msg.put_slice(body.as_bytes().unwrap());
+        match meta {
+            Some(meta) => {
+                msg.put_slice(meta.as_bytes());
+                msg.put_u8(b'\n');
+            }
+            None => {
+                if let Some(body) = req.body() {
+                    // 由本项目保证 body.as_bytes() 返回 Some(...)。
+                    // 也即，由本项目保证 body 为  `Reusable`，而非 `Streaming`。
+                    msg.put_slice(body.as_bytes().unwrap());
+                }
+                msg.put_u8(b'\n');
+            }
         }
-        msg.put_u8(b'\n');
+        // if let Some(body) = req.body() {
+        //     // 由本项目保证 body.as_bytes() 返回 Some(...)。
+        //     // 也即，由本项目保证 body 为  `Reusable`，而非 `Streaming`。
+        //     msg.put_slice(body.as_bytes().unwrap());
+        // }
+        // msg.put_u8(b'\n');
 
         let mut rng = rand::thread_rng();
         let signing_key = SigningKey::<Sha256>::new(self.mch_rsa_private_key.clone());
@@ -77,54 +91,6 @@ impl MchCredential {
             timestamp,
             self.mch_certificate_serial_no
         );
-        req.headers_mut()
-            .insert(AUTHORIZATION, authorization_value.parse().unwrap());
-
-        Ok(req)
-    }
-    pub fn upload_sign_request(&self, mut req: Request, meta: String) -> Result<Request> {
-        const SIGNATURE_TYPE: &str = "WECHATPAY2-SHA256-RSA2048";
-
-        let mut msg = BytesMut::new();
-
-        msg.put_slice(req.method().as_str().as_bytes());
-        msg.put_u8(b'\n');
-
-        let url = if let Some(query) = req.url().query() {
-            format!("{}?{}", req.url().path(), query)
-        } else {
-            req.url().path().to_string()
-        };
-        msg.put_slice(url.as_bytes());
-        msg.put_u8(b'\n');
-
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-        msg.put_slice(format!("{}", timestamp).as_bytes());
-        msg.put_u8(b'\n');
-
-        let nonce_str = generate_none_str(32);
-        msg.put_slice(nonce_str.as_bytes());
-        msg.put_u8(b'\n');
-
-        msg.put_slice(meta.as_bytes());
-        msg.put_u8(b'\n');
-        println!("{:?}", msg);
-
-        let mut rng = rand::thread_rng();
-        let signing_key = SigningKey::<Sha256>::new(self.mch_rsa_private_key.clone());
-        let signature = signing_key.sign_with_rng(&mut rng, &msg).to_bytes();
-        let signature = BASE64_STANDARD.encode(&signature);
-
-        let authorization_value = format!(
-            r#"{} mchid="{}",nonce_str="{}",signature="{}",timestamp="{}",serial_no="{}""#,
-            SIGNATURE_TYPE,
-            self.mch_id,
-            nonce_str,
-            signature,
-            timestamp,
-            self.mch_certificate_serial_no
-        );
-        println!("{:?}", authorization_value);
         req.headers_mut()
             .insert(AUTHORIZATION, authorization_value.parse().unwrap());
 

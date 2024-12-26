@@ -18,7 +18,7 @@ impl WechatPayClient {
     pub async fn jsapi_create_trade(&self, params: &JsApiCreateTradeParams) -> Result<String> {
         let url = format!("{}/pay/transactions/jsapi", BASE_URL);
         let req = self.client.post(url).json(params).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: JsApiCreateTradeResponse = res.json().await?;
         Ok(res.prepay_id)
     }
@@ -28,7 +28,7 @@ impl WechatPayClient {
     pub async fn app_create_trade(&self, params: &AppCreateTradeParams) -> Result<String> {
         let url = format!("{}/pay/transactions/app", BASE_URL);
         let req = self.client.post(url).json(params).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: AppCreateTradeResponse = res.json().await?;
         Ok(res.prepay_id)
     }
@@ -38,7 +38,7 @@ impl WechatPayClient {
     pub async fn h5_create_trade(&self, params: &H5CreateTradeParams) -> Result<String> {
         let url = format!("{}/pay/transactions/h5", BASE_URL);
         let req = self.client.post(url).json(params).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: H5CreateTradeResponse = res.json().await?;
         Ok(res.h5_url)
     }
@@ -49,7 +49,7 @@ impl WechatPayClient {
     pub async fn native_create_trade(&self, params: &NativeCreateTradeParams) -> Result<String> {
         let url = format!("{}/pay/transactions/native", BASE_URL);
         let req = self.client.post(url).json(params).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: NativeCreateTradeResponse = res.json().await?;
         Ok(res.code_url)
     }
@@ -65,7 +65,7 @@ impl WechatPayClient {
             BASE_URL, transaction_id, &self.mch_credential.mch_id
         );
         let req = self.client.get(url).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: TradeQueryResponse = res.json().await?;
         Ok(res)
     }
@@ -81,7 +81,7 @@ impl WechatPayClient {
             BASE_URL, out_trade_no, &self.mch_credential.mch_id
         );
         let req = self.client.get(url).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: TradeQueryResponse = res.json().await?;
         Ok(res)
     }
@@ -103,7 +103,7 @@ impl WechatPayClient {
             mch_id: self.mch_credential.mch_id.clone(),
         };
         let req = self.client.post(url).json(&req).build()?;
-        let _res = self.execute(req).await?;
+        let _res = self.execute(req, None).await?;
         Ok(())
     }
 }

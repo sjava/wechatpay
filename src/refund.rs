@@ -15,7 +15,7 @@ impl WechatPayClient {
     pub async fn apply_refund(&self, params: &RefundParams) -> Result<RefundQueryResponse> {
         let url = format!("{}/refund/domestic/refunds", BASE_URL);
         let req = self.client.post(&url).json(params).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: RefundQueryResponse = res.json().await?;
         Ok(res)
     }
@@ -25,7 +25,7 @@ impl WechatPayClient {
     pub async fn query_refund(&self, out_refund_no: &str) -> Result<RefundQueryResponse> {
         let url = format!("{}/refund/domestic/refunds/{}", BASE_URL, out_refund_no);
         let req = self.client.get(url).build()?;
-        let res = self.execute(req).await?;
+        let res = self.execute(req, None).await?;
         let res: RefundQueryResponse = res.json().await?;
         Ok(res)
     }
