@@ -57,4 +57,8 @@ impl WechatPayClient {
     pub(crate) async fn verify_response(&self, res: Response) -> Result<Response> {
         self.platform_certificate.verify_response(res).await
     }
+
+    pub fn encrypt(&self, data: &str) -> Result<String> {
+        self.platform_certificate.encrypt(data.as_bytes())
+    }
 }

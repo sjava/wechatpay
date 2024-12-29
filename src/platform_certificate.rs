@@ -20,21 +20,20 @@ pub struct PlatformCertificate {
 impl PlatformCertificate {
     /// 对响应进行数字签名验证。
     pub(crate) async fn verify_response(&self, res: Response) -> Result<Response> {
-        let res = verify_response(&self.public_key, res).await?;
-        Ok(res)
+        verify_response(&self.public_key, res).await
     }
 
-    // TODO: 定义一个 RSA 加密方法，用于对敏感信息进行加密
-    pub fn encrypt(&self, data: &[u8]) -> Result<String> {
-        let mut rng = rand::thread_rng();
-
-        let enc_data = self
-            .public_key
-            .encrypt(&mut rng, Oaep::new::<Sha1>(), data)?;
-
-        // Convert to base64
-        Ok(BASE64_STANDARD.encode(enc_data))
+    pub(crate) fn encrypt(&self, data: &[u8]) -> Result<String> {
+        encrypt(&self.public_key, data)
     }
+}
+/// RSA 加密方法，用于对敏感信息进行加密
+pub fn encrypt(public_key: &RsaPublicKey, data: &[u8]) -> Result<String> {
+    let mut rng = rand::thread_rng();
+    let enc_data = public_key.encrypt(&mut rng, Oaep::new::<Sha1>(), data)?;
+
+    // Convert to base64
+    Ok(BASE64_STANDARD.encode(enc_data))
 }
 
 /// 响应签名验证器: 对响应进行数字签名验证。
