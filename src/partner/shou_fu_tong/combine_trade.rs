@@ -1,10 +1,26 @@
 pub mod notify;
+pub mod mini_program_pay;
 
 use crate::{client::BASE_URL, notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
 use hyper::body::Bytes;
 use notify::CombineNotificationEvent;
 use serde::{Deserialize, Serialize};
+
+/// 合单支付-小程序下单
+/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012760633
+pub async fn mini_program_prepay(
+    wxpay: &WechatPayClient,
+    data: &mini_program_pay::MiniProgramPrepayRequest,
+) -> Result<mini_program_pay::MiniProgramPrepayResponse> {
+    let url = format!("{}/combine-transactions/jsapi", BASE_URL);
+
+    let req = wxpay.client.post(url).json(data).build()?;
+    let res = wxpay.execute(req, None).await?;
+    let res = res.json().await?;
+
+    Ok(res)
+}
 
 /// 验证微信支付结果通知签名
 pub async fn verify_notification(
