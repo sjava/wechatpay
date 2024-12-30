@@ -1,4 +1,68 @@
+use crate::{client::BASE_URL, WechatPayClient};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+/// 合单查询订单
+/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
+pub async fn query_combine_order(
+    wxpay: &WechatPayClient,
+    combine_out_trade_no: &str,
+) -> Result<CombineOrderQueryResponse> {
+    let url = "combine-transactions/out-trade-no";
+    let url = format!("{}/{}/{}", BASE_URL, url, combine_out_trade_no);
+
+    let req = wxpay.client.get(url).build()?;
+    let res = wxpay.execute(req, None).await?;
+    let res = res.json().await?;
+
+    Ok(res)
+}
+
+/// 合单关闭订单
+/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761093
+pub async fn close_combine_order(
+    wxpay: &WechatPayClient,
+    combine_out_trade_no: &str,
+    data: &CombineOrderData,
+) -> Result<()> {
+    let url = format!(
+        "combine-transactions/out-trade-no/{}/close",
+        combine_out_trade_no
+    );
+    let url = format!("{}/{}", BASE_URL, url);
+
+    let req = wxpay.client.post(url).json(data).build()?;
+    let _res = wxpay.execute(req, None).await?;
+
+    Ok(())
+}
+
+/// 合单关闭订单
+/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761093
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CombineOrderData {
+    /// 合单发起方的 Appid
+    pub combine_appid: String,
+
+    /// 子单列表
+    pub sub_orders: Vec<ReqCloseSubOrder>,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReqCloseSubOrder {
+    /// 子单商户号，与合单发起方的 Appid 有绑定关系
+    pub mchid: String,
+
+    /// 商品单订单号，商户系统内部对商品单定义的订单号
+    pub out_trade_no: String,
+
+    /// 特约商户商户号（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_mchid: Option<String>,
+
+    /// 服务商模式下，`sub_mchid` 对应的 `sub_appid`（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_appid: Option<String>,
+}
 
 /// 合单支付查询Response
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
