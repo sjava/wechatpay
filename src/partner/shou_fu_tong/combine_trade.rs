@@ -1,6 +1,41 @@
-use crate::{client::BASE_URL, WechatPayClient};
+pub mod notify;
+
+use crate::{client::BASE_URL, notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
+use hyper::body::Bytes;
+use notify::CombineNotificationEvent;
 use serde::{Deserialize, Serialize};
+
+/// 验证微信支付结果通知签名
+pub async fn verify_notification(
+    wxpay: &WechatPayClient,
+    request: http::Request<Bytes>,
+) -> Result<http::Request<Bytes>> {
+    wxpay.verify_notification(request).await
+}
+/// 解密微信支付结果通知，解密结果为 TradeQueryResponse
+pub fn decrypt_notification(
+    wxpay: &WechatPayClient,
+    noti: &WechatPayNotification,
+) -> Result<CombineNotificationEvent> {
+    let plain = wxpay.mch_credential.aes_decrypt(
+        noti.resource.ciphertext.as_bytes(),
+        noti.resource.associated_data.as_bytes(),
+        noti.resource.nonce.as_bytes(),
+    )?;
+
+    let event = match noti.resource.original_type.as_str() {
+        "transaction" => CombineNotificationEvent::Trade(serde_json::from_slice(&plain)?),
+        // "refund" => NotificationEvent::Refund(serde_json::from_slice(&plain)?),
+        _ => {
+            return Err(anyhow::anyhow!(
+                "unknown notification type: {}",
+                noti.resource.original_type
+            ));
+        }
+    };
+    Ok(event)
+}
 
 /// 合单查询订单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
@@ -68,203 +103,96 @@ pub struct ReqCloseSubOrder {
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CombineOrderQueryResponse {
-    /// 合单商户Appid，最大长度32
-    pub combine_appid: String,
-
-    /// 合单商户号，最大长度32
-    pub combine_mchid: String,
-
-    /// 合单支付者信息
+    pub combine_appid: String, // 必填，组合支付的应用ID
+    pub combine_mchid: String, // 必填，组合支付的商户ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub combine_payer_info: Option<CombinePayerInfo>,
-
-    /// 子单信息列表
+    pub combine_payer_info: Option<CombinePayerInfo>, // 选填，组合支付者信息
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub_orders: Option<Vec<SubOrder>>,
-
-    /// 场景信息
+    pub sub_orders: Option<Vec<SubOrder>>, // 选填，子订单列表
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scene_info: Option<SceneInfo>,
-
-    /// 合单商户订单号
-    pub combine_out_trade_no: String,
+    pub scene_info: Option<SceneInfo>, // 选填，场景信息
+    pub combine_out_trade_no: String, // 必填，组合支付的商户订单号
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CombinePayerInfo {
-    /// 用户标识，最大长度128
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub openid: Option<String>,
+    pub openid: Option<String>, // 选填，用户在商户appid下的唯一标识
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubOrder {
-    /// 子单商户号，最大长度32
-    pub mchid: String,
-
-    /// 交易类型
+    pub mchid: String, // 必填，子单商户号
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trade_type: Option<TradeType>,
-
-    /// 交易状态
-    pub trade_state: TradeState,
-
-    /// 付款银行，最大长度32
+    pub trade_type: Option<String>, // 选填，交易类型
+    pub trade_state: String, // 必填，交易状态
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bank_type: Option<String>,
-
-    /// 附加数据，最大长度128
+    pub bank_type: Option<String>, // 选填，付款银行
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attach: Option<String>,
-
-    /// 支付完成时间，最大长度32
+    pub attach: Option<String>, // 选填，附加数据
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub success_time: Option<String>,
-
-    /// 订单金额信息
+    pub success_time: Option<String>, // 选填，支付完成时间
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub amount: Option<Amount>,
-
-    /// 微信支付订单号，最大长度32
+    pub amount: Option<Amount>, // 选填，订单金额
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction_id: Option<String>,
-
-    /// 商品单订单号，最大长度32
-    pub out_trade_no: String,
-
-    /// 特约商户商户号，最大长度32
+    pub transaction_id: Option<String>, // 选填，微信支付订单号
+    pub out_trade_no: String, // 必填，商品单订单号
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub_mchid: Option<String>,
-
-    /// 子商户绑定的Appid，最大长度32
+    pub sub_mchid: Option<String>, // 选填，特约商户商户号
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub_appid: Option<String>,
-
-    /// sub_appid对应的openid，最大长度128
+    pub sub_appid: Option<String>, // 选填，子商户绑定的Appid
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub_openid: Option<String>,
-
-    /// 优惠功能
+    pub sub_openid: Option<String>, // 选填，sub_appid 对应的 openid
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub promotion_detail: Option<Vec<PromotionDetail>>,
-}
-
-/// 交易类型枚举
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum TradeType {
-    /// Native支付
-    Native,
-    /// 公众号支付
-    Jsapi,
-    /// APP支付
-    App,
-    /// H5支付
-    Mweb,
-}
-
-/// 交易状态枚举
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum TradeState {
-    /// 支付成功
-    Success,
-    /// 转入退款
-    Refund,
-    /// 未支付
-    Notpay,
-    /// 已关闭
-    Closed,
-    /// 支付失败
-    Payerror,
+    pub promotion_detail: Option<Vec<PromotionDetail>>, // 选填，优惠功能
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Amount {
-    /// 标价金额，单位为分
-    pub total_amount: u32,
-
-    /// 现金支付金额
-    pub payer_amount: u32,
-
-    /// 标价币种，最大长度16
-    pub currency: String,
-
-    /// 现金支付币种，最大长度16
-    pub payer_currency: String,
-
-    /// 结算汇率
+    pub total_amount: i32,      // 必填，标价金额
+    pub payer_amount: i32,      // 必填，现金支付金额
+    pub currency: String,       // 必填，标价币种
+    pub payer_currency: String, // 必填，现金支付币种
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub settlement_rate: Option<u64>,
+    pub settlement_rate: Option<u64>, // 选填，结算汇率
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PromotionDetail {
-    /// 券ID，最大长度32
-    pub coupon_id: String,
-
-    /// 优惠名称，最大长度64
+    pub coupon_id: String, // 必填，券ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-
-    /// 优惠范围，最大长度32
+    pub name: Option<String>, // 选填，优惠名称
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>,
-
-    /// 优惠类型，最大长度32
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub promotion_type: Option<String>,
-
-    /// 优惠券面额
-    pub amount: u32,
-
-    /// 活动ID，最大长度32
+    pub scope: Option<String>, // 选填，优惠范围
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub stock_id: Option<String>,
-
-    /// 微信出资，单位为分
+    pub r#type: Option<String>, // 选填，优惠类型
+    pub amount: i32,       // 必填，优惠券面额
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub wechatpay_contribute: Option<u32>,
-
-    /// 商户出资，单位为分
+    pub stock_id: Option<String>, // 选填，活动ID
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub merchant_contribute: Option<u32>,
-
-    /// 其他出资，单位为分
+    pub wechatpay_contribute: Option<i32>, // 选填，微信出资
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub other_contribute: Option<u32>,
-
-    /// 优惠币种，最大长度16
+    pub merchant_contribute: Option<i32>, // 选填，商户出资
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub currency: Option<String>,
-
-    /// 单品列表
+    pub other_contribute: Option<i32>, // 选填，其他出资
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub goods_detail: Option<Vec<GoodsDetail>>,
+    pub currency: Option<String>, // 选填，优惠币种
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub goods_detail: Option<Vec<GoodsDetail>>, // 选填，单品列表
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GoodsDetail {
-    /// 商品编码，最大长度32
-    pub goods_id: String,
-
-    /// 商品数量
-    pub quantity: u32,
-
-    /// 商品单价，单位为分
-    pub unit_price: u32,
-
-    /// 商品优惠金额
-    pub discount_amount: u32,
-
-    /// 商品备注，最大长度128
+    pub goods_id: String,     // 必填，商品编码
+    pub quantity: i32,        // 必填，商品数量
+    pub unit_price: i32,      // 必填，商品单价
+    pub discount_amount: i32, // 必填，商品优惠金额
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub goods_remark: Option<String>,
+    pub goods_remark: Option<String>, // 选填，商品备注
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SceneInfo {
-    /// 商户端设备号，最大长度32
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub device_id: Option<String>,
+    pub device_id: Option<String>, // 选填，商户端设备号
 }
