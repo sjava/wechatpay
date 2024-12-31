@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Clone, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct TradeNotifyData {
     pub combine_appid: String,
     pub combine_mchid: String,
@@ -11,12 +11,12 @@ pub struct TradeNotifyData {
     pub combine_payer_info: CombinePayerInfo,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SceneInfo {
     pub device_id: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SubOrder {
     pub mchid: String,
     pub trade_type: String,
@@ -34,7 +34,7 @@ pub struct SubOrder {
     pub promotion_detail: Option<Vec<PromotionDetail>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Amount {
     pub total_amount: i32,
     pub currency: String,
@@ -44,7 +44,7 @@ pub struct Amount {
     pub settlement_rate: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PromotionDetail {
     pub coupon_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,7 +68,7 @@ pub struct PromotionDetail {
     pub goods_detail: Option<Vec<GoodsDetail>>, // goods_detail moved here
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GoodsDetail {
     pub goods_id: String,
     pub quantity: i32,
@@ -79,7 +79,7 @@ pub struct GoodsDetail {
     pub goods_remark: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CombinePayerInfo {
     pub openid: String,
 }

@@ -7,9 +7,10 @@ use crate::{notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
 use combine_trade::notify::TradeNotifyData;
 use hyper::body::Bytes;
+use refund::RefundNotifyData;
 use serde::{Deserialize, Serialize};
 
-/// 微信支付通知。
+/// 微信支付、退款通知。
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012237246
 /// 验证微信支付结果通知签名
 pub async fn verify_notification(
@@ -18,7 +19,8 @@ pub async fn verify_notification(
 ) -> Result<http::Request<Bytes>> {
     wxpay.verify_notification(request).await
 }
-/// 解密微信支付结果通知，解密结果为 TradeQueryResponse
+
+/// 解密微信支付、退款通知。
 pub fn decrypt_notification(
     wxpay: &WechatPayClient,
     notify: &WechatPayNotification,
@@ -31,7 +33,7 @@ pub fn decrypt_notification(
 
     let event = match notify.resource.original_type.as_str() {
         "transaction" => NotificationEvent::Trade(serde_json::from_slice(&plain)?),
-        // "refund" => NotificationEvent::Refund(serde_json::from_slice(&plain)?),
+        "refund" => NotificationEvent::Refund(serde_json::from_slice(&plain)?),
         _ => {
             return Err(anyhow::anyhow!(
                 "unknown notification type: {}",
@@ -42,7 +44,8 @@ pub fn decrypt_notification(
     Ok(event)
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum NotificationEvent {
     Trade(TradeNotifyData),
+    Refund(RefundNotifyData),
 }

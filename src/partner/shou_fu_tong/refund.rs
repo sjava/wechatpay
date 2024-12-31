@@ -4,7 +4,7 @@ pub mod refund_query;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RefundNotifyDetail {
+pub struct RefundNotifyData {
     pub sp_mchid: String,
     pub sub_mchid: String,
     pub transaction_id: String,

@@ -1,48 +1,37 @@
 //! 二级商户进件相关接口。
+pub mod apply_query;
+pub mod settlement;
+pub mod utils;
+
 use crate::client::{WechatPayClient, BASE_URL};
-
-use anyhow::{bail, Context, Result};
-use http::{header::CONTENT_TYPE, HeaderMap};
-use reqwest::multipart::{Form, Part};
-use rsa::sha2::{Digest, Sha256};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 
-#[derive(Debug, Deserialize)]
-pub struct UploadResponse {
-    pub media_id: String,
+pub use apply_query::{query_applyment_by_applyment_id, query_applyment_by_out_request_no};
+pub use settlement::{modify_settlement, query_settlement, query_settlement_modify};
+pub use utils::{get_personal_banking, upload_image};
+
+/// 二级商户进件-申请。
+/// 通过该接口提交二级商户进件申请。
+/// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012713017>
+pub async fn submit(
+    wxpay: &WechatPayClient,
+    sub_merchant: &SubMerchantApplication,
+) -> Result<ApplymentResponse> {
+    let url = "ecommerce/applyments/";
+    let url = format!("{}/{}", BASE_URL, url);
+
+    let req = wxpay.client.post(&url).json(sub_merchant).build()?;
+    let res = wxpay.execute(req, None).await?;
+    let res = res.json().await?;
+    Ok(res)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct PersonalBankingResponse {
-    pub total_count: u32,
-    pub count: u32,
-    pub data: Option<Vec<BankData>>,
-    pub offset: u32,
-    pub links: Links,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct BankData {
-    pub bank_alias: String,
-    pub bank_alias_code: String,
-    pub account_bank: String,
-    pub account_bank_code: u32,
-    pub need_bank_branch: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Links {
-    pub next: String,
-    pub prev: String,
-    #[serde(rename = "self")]
-    pub self_link: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ApplicationResponse {
-    pub applyment_id: String,   // 微信支付申请单号
-    pub out_request_no: String, // 业务申请编号
+/// 提交进件Response
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ApplymentResponse {
+    pub applyment_id: u64,
+    pub out_request_no: String,
 }
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SubMerchantApplication {
@@ -473,333 +462,3 @@ pub struct BusinessLicenseInfo {
     pub business_license_number: String, // 营业执照注册号
 }
 
-impl WechatPayClient {
-    /// 二级商户进件-图片上传。
-    /// 通过该接口上传二级商户相关图片，获取media_id。
-    /// 参见 <https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter2_1_1.shtml>
-    pub async fn upload_image(&self, image: Vec<u8>, filename: &str) -> Result<UploadResponse> {
-        const MAX_SIZE: usize = 2 * 1024 * 1024;
-        if image.len() > MAX_SIZE {
-            bail!("image size too large");
-        }
-
-        // check image format is supported
-        let ext = filename
-            .split('.')
-            .last()
-            .context("Invalid filename, no extension found")?;
-        if !is_supported_image(ext) {
-            bail!("Unsupported image format: {}", ext);
-        }
-
-        // calculate sha256
-        let mut hasher = Sha256::new();
-        hasher.update(&image);
-        let hash = hasher.finalize();
-        let hash = format!("{:x}", hash);
-        println!("hash: {}", hash);
-
-        let meta = json!( {
-            "filename": filename,
-            "sha256": hash
-        })
-        .to_string();
-
-        let mut json_part_headers = HeaderMap::new();
-        json_part_headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
-        let json_part = Part::text(meta.clone()).headers(json_part_headers);
-
-        let mime = match ext {
-            "jpg" | "jpeg" => "image/jpeg",
-            "png" => "image/png",
-            "bmp" => "image/bmp",
-            _ => "image/jpeg",
-        };
-
-        let form_part = Part::bytes(image.to_vec())
-            .file_name(filename.to_string())
-            .mime_str(mime)?;
-
-        let form = Form::new().part("meta", json_part).part("file", form_part);
-
-        let url = format!("{}/merchant/media/upload", BASE_URL);
-        let req = self.client.post(&url).multipart(form).build()?;
-        let res = self.execute(req, Some(meta)).await?;
-        let res: UploadResponse = res.json().await?;
-        Ok(res)
-    }
-    pub async fn get_personal_banking(
-        &self,
-        offset: u32,
-        limit: u32,
-    ) -> Result<PersonalBankingResponse> {
-        let url = format!("{}/capital/capitallhh/banks/personal-banking", BASE_URL);
-        let req = self
-            .client
-            .get(&url)
-            .query(&[("offset", offset), ("limit", limit)])
-            .build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-}
-fn is_supported_image(extension: &str) -> bool {
-    let extensions: [&str; 4] = ["jpg", "jpeg", "png", "bmp"];
-    extensions.contains(&extension.to_lowercase().as_str())
-}
-
-impl WechatPayClient {
-    /// 二级商户进件-申请。
-    /// 通过该接口提交二级商户进件申请。
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012713017>
-    pub async fn applyment(
-        &self,
-        sub_merchant: &SubMerchantApplication,
-    ) -> Result<ApplymentResponse> {
-        let url = "ecommerce/applyments/";
-        let url = format!("{}/{}", BASE_URL, url);
-
-        let req = self.client.post(&url).json(sub_merchant).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-
-    /// 通过业务申请编号查询申请状态
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012691376>
-    pub async fn query_applyment_by_out_request_no(
-        &self,
-        out_request_no: &str,
-    ) -> Result<ApplymentQueryResponse> {
-        let url = "ecommerce/applyments/out-request-no";
-        let url = format!("{}/{}/{}", BASE_URL, url, out_request_no);
-
-        let req = self.client.get(&url).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-
-    /// 通过申请单ID查询申请状态
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012691469>
-    pub async fn query_applyment_by_applyment_id(
-        &self,
-        applyment_id: u64,
-    ) -> Result<ApplymentQueryResponse> {
-        let url = "ecommerce/applyments";
-        let url = format!("{}/{}/{}", BASE_URL, url, applyment_id);
-
-        let req = self.client.get(&url).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-
-    /// 查询结算账户
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012761142>
-    pub async fn query_settlement(&self, sub_mchid: &str) -> Result<SettlementQueryResponse> {
-        let url = format!("apply4sub/sub_merchants/{}/settlement", sub_mchid);
-        let url = format!("{}/{}", BASE_URL, url);
-        println!("url: {}", url);
-
-        let req = self.client.get(&url).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-
-    /// 修改结算账号
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012761138>
-    pub async fn modify_settlement(
-        &self,
-        sub_mchid: &str,
-        data: &SettlementModifyData,
-    ) -> Result<SettlementModifyResponse> {
-        let url = format!("apply4sub/sub_merchants/{}/modify-settlement", sub_mchid);
-        let url = format!("{}/{}", BASE_URL, url);
-
-        let req = self.client.post(&url).json(data).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-
-    /// 查询结算账户修改申请状态
-    /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012761169>
-    pub async fn query_settlement_modify(
-        &self,
-        sub_mchid: &str,
-        application_no: &str,
-    ) -> Result<QuerySettlementModifyResponse> {
-        let url = format!(
-            "apply4sub/sub_merchants/{}/application/{}",
-            sub_mchid, application_no
-        );
-        let url = format!("{}/{}", BASE_URL, url);
-
-        let req = self.client.get(&url).build()?;
-        let res = self.execute(req, None).await?;
-        let res = res.json().await?;
-        Ok(res)
-    }
-}
-
-/// 修改结算账号Data
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SettlementModifyData {
-    pub modify_mode: String,
-    pub account_type: String,
-    pub account_bank: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bank_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bank_branch_id: Option<String>,
-    pub account_number: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub account_name: Option<String>,
-}
-/// 修改结算账号Response
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SettlementModifyResponse {
-    pub application_no: String,
-}
-
-/// 查询结算账户修改申请状态response
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QuerySettlementModifyResponse {
-    pub account_name: String,
-    pub account_type: String,
-    pub account_bank: String,
-    pub bank_name: Option<String>,
-    pub bank_branch_id: Option<String>,
-    pub account_number: String,
-    pub verify_result: String,
-    pub verify_fail_reason: Option<String>,
-    pub verify_finish_time: Option<String>,
-}
-
-/// 结算账号查询Response
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SettlementQueryResponse {
-    pub account_type: String,
-    pub account_bank: String,
-    pub bank_name: Option<String>,
-    pub bank_branch_id: Option<String>,
-    pub account_number: String,
-    pub verify_result: String,
-    pub verify_fail_reason: Option<String>,
-}
-/// 提交进件Response
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ApplymentResponse {
-    pub applyment_id: u64,
-    pub out_request_no: String,
-}
-
-/// 进件查询response
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ApplymentQueryResponse {
-    pub applyment_state: String,
-    pub applyment_state_desc: String,
-    pub sign_url: Option<String>,
-    pub sub_mchid: Option<String>,
-    pub account_validation: Option<AccountValidation>,
-    pub audit_detail: Option<Vec<AuditDetail>>,
-    pub legal_validation_url: Option<String>,
-    pub out_request_no: String,
-    pub applyment_id: u64,
-    pub sign_state: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AccountValidation {
-    pub account_name: String,
-    pub account_no: Option<String>,
-    pub pay_amount: u32,
-    pub destination_account_number: String,
-    pub destination_account_name: String,
-    pub destination_account_bank: String,
-    pub city: String,
-    pub remark: String,
-    pub deadline: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AuditDetail {
-    pub param_name: String,
-    pub reject_reason: String,
-}
-
-#[cfg(test)]
-fn new_sub_merchant_application() -> SubMerchantApplication {
-    SubMerchantApplication {
-        out_request_no: "20210601".to_string(),
-        organization_type: OrganizationType::MicroMerchant,
-        finance_institution: Some(false),
-        business_license_info: None,
-        finance_institution_info: None,
-        id_holder_type: None,
-        id_doc_type: Some(IdDocType::IDENTIFICATION_TYPE_MAINLAND_IDCARD),
-        authorize_letter_copy: None,
-        id_card_info: Some(IdCardInfo {
-            id_card_copy: "sfz-zm-media-id".to_string(),
-            id_card_national: "sfz-zm-media-id".to_string(),
-            id_card_name: "sfz-name-jiami".to_string(),
-            id_card_number: "sfz-num-jiami".to_string(),
-            id_card_valid_time_begin: "sfz-start-yyyy-mm-dd".to_string(),
-            id_card_valid_time: "sfz-end-yyyy-mm-dd/长期".to_string(),
-        }),
-        id_doc_info: None,
-        owner: None,
-        ubo_info_list: None,
-        account_info: AccountInfo {
-            bank_account_type: "75".to_string(),
-            account_bank: "开户银行".to_string(),
-            account_name: "开户名称必须与身份证姓名一致".to_string(),
-            bank_address_code: "开户银行省市编码".to_string(),
-            bank_branch_id: None,
-            bank_name: None,
-            account_number: "卡号加密".to_string(),
-        },
-        contact_info: ContactInfo {
-            contact_type: "65".to_string(),
-            contact_name: "管理员姓名加密与身份证一致".to_string(),
-            contact_id_doc_type: None,
-            contact_id_card_number: Some("身份证号码加密".to_string()),
-            contact_id_doc_copy: None,
-            contact_id_doc_copy_back: None,
-            contact_id_doc_period_begin: None,
-            contact_id_doc_period_end: None,
-            business_authorization_letter: None,
-            mobile_phone: "管理员手机号加密".to_string(),
-        },
-        sales_scene_info: SalesSceneInfo {
-            store_name: "店铺名称".to_string(),
-            store_url: None,
-            store_qr_code: Some("店铺页面二维码media-id".to_string()),
-            mini_program_sub_appid: None,
-        },
-        settlement_info: None,
-        merchant_shortname: "店铺简称".to_string(),
-        qualifications: None,
-        business_addition_pics: None,
-        business_addition_desc: None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_sub_mch() {
-        let sub_mch = new_sub_merchant_application();
-        let serialized = serde_json::to_string(&sub_mch).unwrap();
-        println!("{:#}", serialized);
-        println!("{:#?}", sub_mch);
-
-        let sub_mch1: SubMerchantApplication = serde_json::from_str(&serialized).unwrap();
-        println!("{:#?}", sub_mch1);
-    }
-}

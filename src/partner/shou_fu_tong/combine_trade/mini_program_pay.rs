@@ -1,4 +1,21 @@
+use crate::{client::BASE_URL, WechatPayClient};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+
+/// 合单支付-小程序下单
+/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012760633
+pub async fn mini_program_prepay(
+    wxpay: &WechatPayClient,
+    data: &MiniProgramPrepayRequest,
+) -> Result<MiniProgramPrepayResponse> {
+    let url = format!("{}/combine-transactions/jsapi", BASE_URL);
+
+    let req = wxpay.client.post(url).json(data).build()?;
+    let res = wxpay.execute(req, None).await?;
+    let res = res.json().await?;
+
+    Ok(res)
+}
 
 /// 合单支付-小程序下单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012760633
