@@ -2,6 +2,7 @@ pub mod applyment;
 pub mod combine_trade;
 pub mod profit_sharing;
 pub mod refund;
+pub mod fund;
 
 use crate::{notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
