@@ -1,13 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-/// 微信支付通知。
-/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012237246
-/// 包括支付结果与退款结果。
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CombineNotificationEvent {
-    Trade(TradeNotifyData),
-}
-
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct TradeNotifyData {
     pub combine_appid: String,

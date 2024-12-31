@@ -1,10 +1,8 @@
-pub mod notify;
 pub mod mini_program_pay;
+pub mod notify;
 
-use crate::{client::BASE_URL, notify::WechatPayNotification, WechatPayClient};
+use crate::{client::BASE_URL, WechatPayClient};
 use anyhow::Result;
-use hyper::body::Bytes;
-use notify::CombineNotificationEvent;
 use serde::{Deserialize, Serialize};
 
 /// 合单支付-小程序下单
@@ -20,37 +18,6 @@ pub async fn mini_program_prepay(
     let res = res.json().await?;
 
     Ok(res)
-}
-
-/// 验证微信支付结果通知签名
-pub async fn verify_notification(
-    wxpay: &WechatPayClient,
-    request: http::Request<Bytes>,
-) -> Result<http::Request<Bytes>> {
-    wxpay.verify_notification(request).await
-}
-/// 解密微信支付结果通知，解密结果为 TradeQueryResponse
-pub fn decrypt_notification(
-    wxpay: &WechatPayClient,
-    noti: &WechatPayNotification,
-) -> Result<CombineNotificationEvent> {
-    let plain = wxpay.mch_credential.aes_decrypt(
-        noti.resource.ciphertext.as_bytes(),
-        noti.resource.associated_data.as_bytes(),
-        noti.resource.nonce.as_bytes(),
-    )?;
-
-    let event = match noti.resource.original_type.as_str() {
-        "transaction" => CombineNotificationEvent::Trade(serde_json::from_slice(&plain)?),
-        // "refund" => NotificationEvent::Refund(serde_json::from_slice(&plain)?),
-        _ => {
-            return Err(anyhow::anyhow!(
-                "unknown notification type: {}",
-                noti.resource.original_type
-            ));
-        }
-    };
-    Ok(event)
 }
 
 /// 合单查询订单
