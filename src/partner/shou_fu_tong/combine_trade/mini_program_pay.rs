@@ -19,7 +19,7 @@ pub async fn mini_program_prepay(
 
 /// 合单支付-小程序下单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012760633
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct MiniProgramPrepayRequest {
     combine_appid: String,
     combine_mchid: String,
@@ -35,14 +35,14 @@ pub struct MiniProgramPrepayRequest {
     notify_url: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct SceneInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     device_id: Option<String>,
     payer_client_ip: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct SubOrder {
     mchid: String,
     attach: String,
@@ -61,13 +61,13 @@ pub struct SubOrder {
     goods_tag: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Amount {
     total_amount: i32,
     currency: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct SettleInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     profit_sharing: Option<bool>,
@@ -75,7 +75,7 @@ pub struct SettleInfo {
     subsidy_amount: Option<i32>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct CombinePayerInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     openid: Option<String>,
