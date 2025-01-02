@@ -75,8 +75,7 @@ pub struct CombineOrderQueryResponse {
     pub combine_mchid: String, // 必填，组合支付的商户ID
     #[serde(skip_serializing_if = "Option::is_none")]
     pub combine_payer_info: Option<CombinePayerInfo>, // 选填，组合支付者信息
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub sub_orders: Option<Vec<SubOrder>>, // 选填，子订单列表
+    pub sub_orders: Vec<SubOrder>, // 子订单列表
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scene_info: Option<SceneInfo>, // 选填，场景信息
     pub combine_out_trade_no: String, // 必填，组合支付的商户订单号
