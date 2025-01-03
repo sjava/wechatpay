@@ -86,5 +86,5 @@ pub struct CombinePayerInfo {
 /// 合单支付-小程序下单Response
 #[derive(Serialize, Deserialize)]
 pub struct MiniProgramPrepayResponse {
-    prepay_id: String,
+    pub prepay_id: String,
 }

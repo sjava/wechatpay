@@ -5,6 +5,8 @@ use crate::{client::BASE_URL, WechatPayClient};
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+pub use mini_program_pay::mini_program_prepay;
+
 /// 合单查询订单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
 pub async fn query_combine_order(

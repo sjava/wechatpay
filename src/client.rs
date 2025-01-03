@@ -27,6 +27,11 @@ impl WechatPayClient {
         })
     }
 
+    /// get mch_id
+    pub fn get_mch_id(&self) -> &str {
+        &self.mch_credential.mch_id
+    }
+
     /// 执行 HTTP 请求
     /// 请求发送时，先进行签名；收到响应时，先进行验签，通过后再返回。
     /// (本 crate 未实现的接口，可以通过此方法访问)
