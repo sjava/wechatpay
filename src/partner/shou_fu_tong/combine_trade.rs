@@ -1,8 +1,10 @@
 pub mod mini_program_pay;
 pub mod notify;
 
+use crate::util::option_datetime_fmt;
 use crate::{client::BASE_URL, WechatPayClient};
 use anyhow::Result;
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 pub use mini_program_pay::mini_program_prepay;
@@ -99,8 +101,8 @@ pub struct SubOrder {
     pub bank_type: Option<String>, // 选填，付款银行
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attach: Option<String>, // 选填，附加数据
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub success_time: Option<String>, // 选填，支付完成时间
+    #[serde(with = "option_datetime_fmt")]
+    pub success_time: Option<DateTime<Local>>, // 选填，支付完成时间
     #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<Amount>, // 选填，订单金额
     #[serde(skip_serializing_if = "Option::is_none")]
