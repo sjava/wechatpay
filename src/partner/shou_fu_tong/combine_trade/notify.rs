@@ -1,3 +1,5 @@
+use crate::util::datetime_fmt;
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,7 +25,8 @@ pub struct SubOrder {
     pub trade_state: String,
     pub bank_type: String,
     pub attach: String,
-    pub success_time: String,
+    #[serde(with = "datetime_fmt")]
+    pub success_time: DateTime<Local>,
     pub transaction_id: String,
     pub out_trade_no: String,
     pub sub_mchid: String,
