@@ -30,7 +30,7 @@ pub async fn query_combine_order(
 pub async fn close_combine_order(
     wxpay: &WechatPayClient,
     combine_out_trade_no: &str,
-    data: &CombineOrderData,
+    data: &CombineClosData,
 ) -> Result<()> {
     let url = format!(
         "combine-transactions/out-trade-no/{}/close",
@@ -47,7 +47,7 @@ pub async fn close_combine_order(
 /// 合单关闭订单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761093
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CombineOrderData {
+pub struct CombineClosData {
     /// 合单发起方的 Appid
     pub combine_appid: String,
 
