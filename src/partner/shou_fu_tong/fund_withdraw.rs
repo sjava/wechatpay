@@ -168,23 +168,23 @@ pub struct PlatformWithdrawResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubMchWithdrawalRequest {
-    sub_mchid: String,
-    out_request_no: String,
-    amount: i32,
+    pub sub_mchid: String,
+    pub out_request_no: String,
+    pub amount: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    remark: Option<String>,
+    pub remark: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    bank_memo: Option<String>,
+    pub bank_memo: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    account_type: Option<String>,
+    pub account_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    notify_url: Option<String>,
+    pub notify_url: Option<String>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubMchWithdrawResponse {
-    sub_mchid: String,
-    withdraw_id: String,
-    out_request_no: String,
+    pub sub_mchid: String,
+    pub withdraw_id: String,
+    pub out_request_no: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

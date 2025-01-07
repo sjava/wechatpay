@@ -46,7 +46,7 @@ pub async fn query_sub_mch_end_day_balance(
 }
 
 /// 查询平台账户实时余额
-/// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012476700
+/// 文档地址：<https://pay.weixin.qq.com/doc/v3/partner/4012476700>
 pub async fn query_platform_balance(
     wxpay: &WechatPayClient,
     account_type: &str,
@@ -80,17 +80,17 @@ pub async fn query_platform_end_day_balance(
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubMchBalanceResponse {
-    sub_mchid: String,
-    available_amount: i32,
+    pub sub_mchid: String,
+    pub available_amount: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pending_amount: Option<i32>,
+    pub pending_amount: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    account_type: Option<String>,
+    pub account_type: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlatformBalanceResponse {
-    available_amount: i32,
+    pub available_amount: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pending_amount: Option<i32>,
+    pub pending_amount: Option<u32>,
 }
