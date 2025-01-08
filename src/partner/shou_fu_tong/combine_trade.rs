@@ -6,6 +6,7 @@ use crate::{client::BASE_URL, WechatPayClient};
 use anyhow::Result;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use serde_with::{serde_as, DefaultOnError};
 
 pub use mini_program_pay::mini_program_prepay;
 
@@ -77,11 +78,16 @@ pub struct ReqCloseSubOrder {
 pub struct CombineOrderQueryResponse {
     pub combine_appid: String, // 必填，组合支付的应用ID
     pub combine_mchid: String, // 必填，组合支付的商户ID
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub combine_payer_info: Option<CombinePayerInfo>, // 选填，组合支付者信息
+
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sub_orders: Option<Vec<SubOrder>>, // 子订单列表
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub scene_info: Option<SceneInfo>, // 选填，场景信息
+
     pub combine_out_trade_no: String, // 必填，组合支付的商户订单号
 }
 
@@ -91,6 +97,7 @@ pub struct CombinePayerInfo {
     pub openid: Option<String>, // 选填，用户在商户appid下的唯一标识
 }
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SubOrder {
     pub mchid: String, // 必填，子单商户号
@@ -101,10 +108,13 @@ pub struct SubOrder {
     pub bank_type: Option<String>, // 选填，付款银行
     #[serde(skip_serializing_if = "Option::is_none")]
     pub attach: Option<String>, // 选填，附加数据
-    #[serde(with = "option_datetime_fmt")]
+
+    #[serde(default, with = "option_datetime_fmt")]
     pub success_time: Option<DateTime<Local>>, // 选填，支付完成时间
-    #[serde(skip_serializing_if = "Option::is_none")]
+
+    #[serde_as(as = "DefaultOnError<_>")]
     pub amount: Option<Amount>, // 选填，订单金额
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction_id: Option<String>, // 选填，微信支付订单号
     pub out_trade_no: String, // 必填，商品单订单号
