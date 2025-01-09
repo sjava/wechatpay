@@ -8,10 +8,11 @@ pub mod refund;
 use crate::{notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
 use combine_trade::notify::TradeNotifyData;
+use profit_sharing::ProfitShareNotifyData;
 use refund::RefundNotifyData;
 use serde::{Deserialize, Serialize};
 
-/// 解密微信支付、退款通知。
+/// 解密微信支付、退款、分账通知。
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012237246
 pub fn decrypt_notification(
     wxpay: &WechatPayClient,
@@ -26,6 +27,7 @@ pub fn decrypt_notification(
     let event = match notify.resource.original_type.as_str() {
         "transaction" => NotificationEvent::Trade(serde_json::from_slice(&plain)?),
         "refund" => NotificationEvent::Refund(serde_json::from_slice(&plain)?),
+        "profitsharing" => NotificationEvent::ProfitShare(serde_json::from_slice(&plain)?),
         _ => {
             return Err(anyhow::anyhow!(
                 "unknown notification type: {}",
@@ -40,4 +42,5 @@ pub fn decrypt_notification(
 pub enum NotificationEvent {
     Trade(TradeNotifyData),
     Refund(RefundNotifyData),
+    ProfitShare(ProfitShareNotifyData),
 }
