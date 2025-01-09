@@ -2,7 +2,7 @@
 //! 这些信息均为敏感信息，注意确保安全，避免泄露。
 
 use aes_gcm::aead::{Aead, KeyInit, Payload};
-use aes_gcm::{Aes256Gcm, Nonce};
+use aes_gcm::Aes256Gcm;
 use anyhow::Result;
 use base64::prelude::*;
 use bytes::{BufMut, BytesMut};
@@ -100,26 +100,29 @@ impl MchCredential {
     /// 使用商户 API v3 密钥解密
     pub fn aes_decrypt(
         &self,
-        ciphertext: &[u8],
-        associated_data: &[u8],
-        nonce: &[u8],
+        ciphertext: &str,
+        associated_data: &str,
+        nonce: &str,
     ) -> Result<Vec<u8>> {
-        let cipher = Aes256Gcm::new_from_slice(self.mch_api_v3_key.as_bytes())?;
-        let nonce = Nonce::from_slice(nonce);
+        let ciphertext = BASE64_STANDARD.decode(ciphertext.as_bytes())?;
+        let cipher = Aes256Gcm::new(self.mch_api_v3_key.as_bytes().into());
+
         let payload = Payload {
-            msg: ciphertext,
-            aad: associated_data,
+            msg: ciphertext.as_slice(),
+            aad: associated_data.as_bytes(),
         };
 
-        cipher.decrypt(nonce, payload).map_err(Into::into)
+        cipher
+            .decrypt(nonce.as_bytes().into(), payload)
+            .map_err(Into::into)
     }
 
     /// 使用商户 API v3 密钥解密，并转换为字符串
     pub fn aes_decrypt_to_string(
         &self,
-        ciphertext: &[u8],
-        associated_data: &[u8],
-        nonce: &[u8],
+        ciphertext: &str,
+        associated_data: &str,
+        nonce: &str,
     ) -> Result<String> {
         let bytes = self.aes_decrypt(ciphertext, associated_data, nonce)?;
         Ok(String::from_utf8(bytes)?)

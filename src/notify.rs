@@ -93,9 +93,9 @@ impl WechatPayClient {
     /// 解密微信支付结果通知，解密结果为 TradeQueryResponse
     pub fn decrypt_notification(&self, noti: &WechatPayNotification) -> Result<NotificationEvent> {
         let plain = self.mch_credential.aes_decrypt(
-            noti.resource.ciphertext.as_bytes(),
-            noti.resource.associated_data.as_bytes(),
-            noti.resource.nonce.as_bytes(),
+            &noti.resource.ciphertext,
+            &noti.resource.associated_data,
+            &noti.resource.nonce,
         )?;
 
         let event = match noti.resource.original_type.as_str() {

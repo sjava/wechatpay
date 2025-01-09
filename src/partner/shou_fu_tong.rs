@@ -18,9 +18,9 @@ pub fn decrypt_notification(
     notify: &WechatPayNotification,
 ) -> Result<NotificationEvent> {
     let plain = wxpay.mch_credential.aes_decrypt(
-        notify.resource.ciphertext.as_bytes(),
-        notify.resource.associated_data.as_bytes(),
-        notify.resource.nonce.as_bytes(),
+        &notify.resource.ciphertext,
+        &notify.resource.associated_data,
+        &notify.resource.nonce,
     )?;
 
     let event = match notify.resource.original_type.as_str() {

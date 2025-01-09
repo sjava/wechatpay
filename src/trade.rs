@@ -140,8 +140,10 @@ impl WechatPayClient {
 /// JSAPI 下单时，针对返回的 prepay_id 生成的签名，
 /// 前端在调起微信支付时，需要这些参数。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JsApiTradeSignature {
     pub app_id: String,
+    #[serde(rename = "timeStamp")]
     pub timestamp: String, // 注意，单位为秒。类型为 string。
     pub nonce_str: String,
     // 须形如 `prepay_id=xxxxx`。注意 xxxx 前后无引号。
