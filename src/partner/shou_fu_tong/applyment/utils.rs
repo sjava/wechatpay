@@ -33,7 +33,6 @@ pub async fn upload_image(
     hasher.update(&image);
     let hash = hasher.finalize();
     let hash = format!("{:x}", hash);
-    println!("hash: {}", hash);
 
     let meta = json!( {
         "filename": filename,
