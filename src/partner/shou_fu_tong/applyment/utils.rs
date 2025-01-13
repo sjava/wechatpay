@@ -71,15 +71,11 @@ fn is_supported_image(extension: &str) -> bool {
 
 pub async fn get_personal_banking(
     wxpay: &WechatPayClient,
-    offset: u32,
-    limit: u32,
+    url: &str,
 ) -> Result<PersonalBankingResponse> {
-    let url = format!("{}/capital/capitallhh/banks/personal-banking", BASE_URL);
-    let req = wxpay
-        .client
-        .get(&url)
-        .query(&[("offset", offset), ("limit", limit)])
-        .build()?;
+    let base_url = "https://api.mch.weixin.qq.com";
+    let url = format!("{}{}", base_url, url);
+    let req = wxpay.client.get(&url).build()?;
     let res = wxpay.execute(req, None).await?;
     let res = res.json().await?;
     Ok(res)
