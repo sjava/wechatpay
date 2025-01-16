@@ -11,6 +11,8 @@ pub use apply_query::{query_applyment_by_applyment_id, query_applyment_by_out_re
 pub use settlement::{modify_settlement, query_settlement, query_settlement_modify};
 pub use utils::{get_personal_banking, upload_image};
 
+use super::ShouFuTong;
+
 /// 二级商户进件-申请。
 /// 通过该接口提交二级商户进件申请。
 /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012713017>
@@ -25,6 +27,21 @@ pub async fn submit(
     let res = wxpay.execute(req, None).await?;
     let res = res.json().await?;
     Ok(res)
+}
+
+impl ShouFuTong for WechatPayClient {
+    async fn applyment_submit(
+        &self,
+        payload: SubMerchantApplication,
+    ) -> Result<()> {
+        let url = "ecommerce/applyments/";
+        let url = format!("{}/{}", BASE_URL, url);
+
+        let req = self.client.post(&url).json(&payload).build()?;
+        let res = self.execute(req, None).await?;
+        let res = res.json().await?;
+        Ok(res)
+    }
 }
 
 /// 提交进件Response
@@ -461,4 +478,3 @@ pub struct BusinessLicenseInfo {
     pub business_license_copy: String,   // 营业执照扫描件
     pub business_license_number: String, // 营业执照注册号
 }
-

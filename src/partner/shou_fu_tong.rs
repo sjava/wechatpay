@@ -7,6 +7,8 @@ pub mod refund;
 
 use crate::{notify::WechatPayNotification, WechatPayClient};
 use anyhow::Result;
+use applyment::{ApplymentResponse, SubMerchantApplication};
+use async_trait::async_trait;
 use combine_trade::notify::TradeNotifyData;
 use profit_sharing::ProfitShareNotifyData;
 use refund::RefundNotifyData;
@@ -43,4 +45,9 @@ pub enum NotificationEvent {
     Trade(TradeNotifyData),
     Refund(RefundNotifyData),
     ProfitShare(ProfitShareNotifyData),
+}
+
+#[async_trait]
+pub trait ShouFuTong {
+    async fn applyment_submit(&self, payload: u32) -> Result<ApplymentResponse>;
 }
