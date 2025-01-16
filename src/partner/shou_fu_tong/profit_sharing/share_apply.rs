@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// 分账请求
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012691594
-pub async fn share_request(
+pub(in crate::partner::shou_fu_tong) async fn share_request(
     wxpay: &WechatPayClient,
     data: &ShareRequestBody,
 ) -> Result<ShareResponseBody> {

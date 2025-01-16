@@ -9,7 +9,7 @@ use serde_json::json;
 /// 二级商户进件-图片上传。
 /// 通过该接口上传二级商户相关图片，获取media_id。
 /// 参见 <https://pay.weixin.qq.com/wiki/doc/apiv3/apis/chapter2_1_1.shtml>
-pub async fn upload_image(
+pub(in crate::partner::shou_fu_tong) async fn upload_image(
     wxpay: &WechatPayClient,
     image: Vec<u8>,
     filename: &str,
@@ -68,7 +68,7 @@ fn is_supported_image(extension: &str) -> bool {
     extensions.contains(&extension.to_lowercase().as_str())
 }
 
-pub async fn get_personal_banking(
+pub(crate) async fn get_personal_banking(
     wxpay: &WechatPayClient,
     url: &str,
 ) -> Result<PersonalBankingResponse> {

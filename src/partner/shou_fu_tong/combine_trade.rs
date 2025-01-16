@@ -8,11 +8,11 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DefaultOnError};
 
-pub use mini_program_pay::mini_program_prepay;
+// pub use mini_program_pay::mini_program_prepay;
 
 /// 合单查询订单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761049
-pub async fn query_combine_order(
+pub(super) async fn query_combine_order(
     wxpay: &WechatPayClient,
     combine_out_trade_no: &str,
 ) -> Result<CombineOrderQueryResponse> {
@@ -28,7 +28,7 @@ pub async fn query_combine_order(
 
 /// 合单关闭订单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012761093
-pub async fn close_combine_order(
+pub(super) async fn close_combine_order(
     wxpay: &WechatPayClient,
     combine_out_trade_no: &str,
     data: &CombineClosData,

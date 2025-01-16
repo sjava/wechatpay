@@ -19,7 +19,7 @@ pub async fn query_applyment_by_out_request_no(
 
 /// 通过申请单ID查询申请状态
 /// 参见 <https://pay.weixin.qq.com/doc/v3/partner/4012691469>
-pub async fn query_applyment_by_applyment_id(
+pub(in crate::partner::shou_fu_tong) async fn query_applyment_by_applyment_id(
     wxpay: &WechatPayClient,
     applyment_id: u64,
 ) -> Result<ApplymentQueryResponse> {

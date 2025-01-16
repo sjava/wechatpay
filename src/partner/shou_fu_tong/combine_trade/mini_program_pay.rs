@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// 合单支付-小程序下单
 /// 文档地址：https://pay.weixin.qq.com/doc/v3/partner/4012760633
-pub async fn mini_program_prepay(
+pub(in crate::partner::shou_fu_tong) async fn mini_program_prepay(
     wxpay: &WechatPayClient,
     data: &MiniProgramPrepayRequest,
 ) -> Result<MiniProgramPrepayResponse> {
