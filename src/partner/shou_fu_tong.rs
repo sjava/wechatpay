@@ -18,7 +18,11 @@ use combine_trade::{
     notify::TradeNotifyData,
     CombineClosData, CombineOrderQueryResponse,
 };
-use profit_sharing::{share_apply::{ShareRequestBody, ShareResponseBody}, share_query::ShareQueryResponse, ProfitShareNotifyData};
+use profit_sharing::{
+    share_apply::{ShareRequestBody, ShareResponseBody},
+    share_query::ShareQueryResponse,
+    ProfitShareNotifyData,
+};
 use refund::RefundNotifyData;
 use serde::{Deserialize, Serialize};
 
@@ -56,7 +60,7 @@ pub enum NotificationEvent {
 }
 
 #[async_trait]
-pub trait ShouFuTong {
+pub trait ShouFuTong: Send + Sync {
     async fn applyment_submit(&self, payload: &SubMerchantApplication)
         -> Result<ApplymentResponse>;
     async fn query_applyment_by_applyment_id(
@@ -92,10 +96,7 @@ pub trait ShouFuTong {
         transaction_id: &str,
         out_order_no: &str,
     ) -> Result<ShareQueryResponse>;
-    async fn share_request(
-        &self,
-        data: &ShareRequestBody,
-    ) -> Result<ShareResponseBody>;
+    async fn share_request(&self, data: &ShareRequestBody) -> Result<ShareResponseBody>;
 
     fn decrypt_shou_fu_tong_notification(
         &self,
@@ -161,10 +162,7 @@ impl ShouFuTong for WechatPayClient {
         profit_sharing::share_query::query_share(self, sub_mchid, transaction_id, out_order_no)
             .await
     }
-    async fn share_request(
-        &self,
-        data: &ShareRequestBody,
-    ) -> Result<ShareResponseBody> {
+    async fn share_request(&self, data: &ShareRequestBody) -> Result<ShareResponseBody> {
         profit_sharing::share_apply::share_request(self, data).await
     }
 
