@@ -5,7 +5,7 @@ pub mod fund_withdraw;
 pub mod profit_sharing;
 pub mod refund;
 
-use crate::{notify::WechatPayNotification, WechatPayClient};
+use crate::{notify::WechatPayNotification, trade::JsApiTradeSignature, WechatPayClient};
 use anyhow::Result;
 use applyment::{
     apply_query::ApplymentQueryResponse,
@@ -18,6 +18,7 @@ use combine_trade::{
     notify::TradeNotifyData,
     CombineClosData, CombineOrderQueryResponse,
 };
+use hyper::body::Bytes;
 use profit_sharing::{
     share_apply::{ShareRequestBody, ShareResponseBody},
     share_query::ShareQueryResponse,
@@ -60,7 +61,7 @@ pub enum NotificationEvent {
 }
 
 #[async_trait]
-pub trait ShouFuTong {
+pub trait ShouFuTong: Send + Sync {
     async fn applyment_submit(&self, payload: &SubMerchantApplication)
         -> Result<ApplymentResponse>;
     async fn query_applyment_by_applyment_id(
@@ -96,12 +97,21 @@ pub trait ShouFuTong {
         transaction_id: &str,
         out_order_no: &str,
     ) -> Result<ShareQueryResponse>;
+
     async fn share_request(&self, data: &ShareRequestBody) -> Result<ShareResponseBody>;
+
+    async fn verify_notification(&self, req: http::Request<Bytes>) -> Result<http::Request<Bytes>>;
 
     fn decrypt_shou_fu_tong_notification(
         &self,
         notify: &WechatPayNotification,
     ) -> Result<NotificationEvent>;
+
+    fn encrypt(&self, data: &str) -> Result<String>;
+
+    fn sign_jsapi_trade(&self, prepay_id: &str, app_id: &str) -> JsApiTradeSignature;
+
+    fn get_mch_id(&self) -> &str;
 }
 
 #[async_trait]
@@ -166,10 +176,26 @@ impl ShouFuTong for WechatPayClient {
         profit_sharing::share_apply::share_request(self, data).await
     }
 
+    async fn verify_notification(&self, req: http::Request<Bytes>) -> Result<http::Request<Bytes>> {
+        self.verify_notification(req).await
+    }
+
     fn decrypt_shou_fu_tong_notification(
         &self,
         notify: &WechatPayNotification,
     ) -> Result<NotificationEvent> {
         decrypt_notification(self, notify)
+    }
+
+    fn encrypt(&self, data: &str) -> Result<String> {
+        self.platform_certificate.encrypt(data.as_bytes())
+    }
+
+    fn sign_jsapi_trade(&self, prepay_id: &str, app_id: &str) -> JsApiTradeSignature {
+        self.sign_jsapi_trade(prepay_id, app_id)
+    }
+
+    fn get_mch_id(&self) -> &str {
+        &self.mch_credential.mch_id
     }
 }
