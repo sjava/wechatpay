@@ -60,7 +60,7 @@ pub enum NotificationEvent {
 }
 
 #[async_trait]
-pub trait ShouFuTong: Send + Sync {
+pub trait ShouFuTong {
     async fn applyment_submit(&self, payload: &SubMerchantApplication)
         -> Result<ApplymentResponse>;
     async fn query_applyment_by_applyment_id(
