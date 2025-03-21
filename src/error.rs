@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, thiserror::Error)]
 #[serde(default)]
-#[error("微信支付错误: {code} && {message}")]
+#[error("微信支付错误: {message} && {code}")]
 pub struct WechatPayApiError {
     /// 错误码
     code: String,

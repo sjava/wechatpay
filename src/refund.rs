@@ -35,7 +35,7 @@ impl WechatPayClient {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RefundParams {
     #[serde(flatten)]
-    trade_id: TradeId,
+    pub trade_id: TradeId,
     /// 商户退款单号，不超过 64 字符。
     /// 商户系统内部的退款单号，商户系统内部唯一，只能是数字、大小写字母_-|*@
     pub out_refund_no: String,
