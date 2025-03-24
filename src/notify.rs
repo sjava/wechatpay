@@ -1,7 +1,8 @@
 //! 微信支付通知。包括支付结果与退款结果的通知。
 
-use crate::refund::RefundQueryResponse;
+use crate::refund::RefundStatus;
 use crate::util::datetime_fmt;
+use crate::util::option_datetime_fmt;
 use crate::{client::WechatPayClient, trade::TradeQueryResponse};
 use anyhow::Result;
 use chrono::{DateTime, Local};
@@ -49,10 +50,51 @@ pub struct NotificationResourse {
     pub nonce: String,
 }
 
+// 退款通知资源解密后的数据
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefundNotifyResponse {
+    /// 商户下单时传入的商户号
+    pub mchid: String,
+    /// 商户订单号。不超过 32 字符。
+    pub out_trade_no: String,
+    /// 微信支付订单号。不超过 32 字符。
+    pub transaction_id: String,
+    /// 商户系统内部的退款单号，商户系统内部唯一，只能是数字、大小写字母_-|*@
+    pub out_refund_no: String,
+    /// 微信支付退款单号。不超过 32 字符。
+    pub refund_id: String,
+    /// 退款入账账户。不超过 64 字符。
+    /// 取当前退款单的退款入账方，有以下几种情况：
+    /// 1. 退回银行卡：{银行名称}{卡类型}{卡尾号}
+    /// 2. 退回支付用户零钱:支付用户零钱
+    /// 3. 退还商户:商户基本账户商户结算银行账户
+    /// 4. 退回支付用户零钱通:支付用户零钱通
+    pub user_received_account: String,
+
+    /// 退款成功时间，当退款状态为退款成功时有返回。
+    #[serde(
+        with = "option_datetime_fmt",
+        skip_serializing_if = "Option::is_none",
+        default
+    )]
+    pub success_time: Option<DateTime<Local>>,
+    /// 退款状态。
+    pub refund_status: RefundStatus,
+    /// 金额详细信息
+    pub amount: RefundNotifyAmount,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RefundNotifyAmount {
+    total: i32,
+    refund: i32,
+    payer_total: i32,
+    payer_refund: i32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NotificationEvent {
     Trade(TradeQueryResponse),
-    Refund(RefundQueryResponse),
+    Refund(RefundNotifyResponse),
 }
 
 impl WechatPayClient {
