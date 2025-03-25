@@ -24,7 +24,10 @@ use profit_sharing::{
     share_query::ShareQueryResponse,
     ProfitShareNotifyData,
 };
-use refund::RefundNotifyData;
+use refund::{
+    refund_apply::{self, RefundRequestBody, RefundResponseBody},
+    RefundNotifyData,
+};
 use serde::{Deserialize, Serialize};
 
 /// 解密微信支付、退款、分账通知。
@@ -102,6 +105,8 @@ pub trait ShouFuTong {
 
     async fn verify_notification(&self, req: http::Request<Bytes>) -> Result<http::Request<Bytes>>;
 
+    async fn refund_apply(&self, data: &RefundRequestBody) -> Result<RefundResponseBody>;
+
     fn decrypt_shou_fu_tong_notification(
         &self,
         notify: &WechatPayNotification,
@@ -178,6 +183,10 @@ impl ShouFuTong for WechatPayClient {
 
     async fn verify_notification(&self, req: http::Request<Bytes>) -> Result<http::Request<Bytes>> {
         self.verify_notification(req).await
+    }
+
+    async fn refund_apply(&self, data: &RefundRequestBody) -> Result<RefundResponseBody> {
+        refund_apply::refund_apply(self, data).await
     }
 
     fn decrypt_shou_fu_tong_notification(
