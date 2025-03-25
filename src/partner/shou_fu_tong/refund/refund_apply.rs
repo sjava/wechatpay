@@ -59,7 +59,7 @@ pub struct RefundResponseBody {
     pub refund_id: String,
     pub out_refund_no: String,
     pub create_time: String,
-    pub amount: Amount,
+    pub amount: AmountResponse,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub promotion_detail: Option<Vec<PromotionDetail>>,
     #[serde(skip_serializing_if = "Option::is_none")]
